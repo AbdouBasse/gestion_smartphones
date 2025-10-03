@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER = 'mhd0'
+        DOCKER_HUB_USER = 'abdou-basse'
         FRONT_IMAGE = 'react-frontend'
         BACK_IMAGE  = 'express-backend'
     }
@@ -28,7 +28,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/mhdgeek/express_mongo_react.git'
+                git branch: 'main', url: 'https://github.com/mhdgeek/gestion_smartphones.git'
             }
         }
 
@@ -36,6 +36,7 @@ pipeline {
             steps {
                 dir('back-end') {
                     sh 'npm install'
+                    sh 'node -v && npm -v'
                 }
             }
         }
