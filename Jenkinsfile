@@ -28,7 +28,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/mhdgeek/gestion_smartphones.git'
+                git branch: 'main', url: 'https://github.com/AbdouBasse/gestion_smartphones.git'
             }
         }
 
