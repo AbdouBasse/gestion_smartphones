@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     tools {
+        // Assure-toi que "NodeJS_16" est bien configuré dans Jenkins > Global Tool Configuration
         nodejs "NodeJS_16"
     }
 
@@ -10,8 +11,8 @@ pipeline {
         FRONT_IMAGE = 'react-frontend'
         BACK_IMAGE  = 'express-backend'
     }
+
     triggers {
-        // Pour que le pipeline démarre quand le webhook est reçu
         GenericTrigger(
             genericVariables: [
                 [key: 'ref', value: '$.ref'],
@@ -52,8 +53,17 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    sh 'cd back-end && npm test || echo "Aucun test backend"'
-                    sh 'cd front-end && npm test || echo "Aucun test frontend"'
+                    try {
+                        sh 'cd back-end && npm test'
+                    } catch (err) {
+                        echo "Aucun test backend ou échec : ${err}"
+                    }
+
+                    try {
+                        sh 'cd front-end && npm test'
+                    } catch (err) {
+                        echo "Aucun test frontend ou échec : ${err}"
+                    }
                 }
             }
         }
@@ -79,11 +89,10 @@ pipeline {
             }
         }
 
-        // on supprime les conteneur inactif dans docker container
         stage('Clean Docker') {
             steps {
-                sh 'docker container prune -f'
-                sh 'docker image prune -f'
+                sh 'docker container prune -f || true'
+                sh 'docker image prune -f || true'
             }
         }
 
@@ -96,9 +105,9 @@ pipeline {
 
         stage('Deploy (compose.yaml)') {
             steps {
-                dir('.') {  
+                dir('.') {
                     sh 'docker-compose -f compose.yaml down || true'
-                    sh 'docker-compose -f compose.yaml pull'
+                    sh 'docker-compose -f compose.yaml pull || true'
                     sh 'docker-compose -f compose.yaml up -d'
                     sh 'docker-compose -f compose.yaml ps'
                     sh 'docker-compose -f compose.yaml logs --tail=50'
@@ -109,11 +118,11 @@ pipeline {
         stage('Smoke Test') {
             steps {
                 sh '''
-                    echo " Vérification Frontend (port 5173)..."
-                    curl -f http://localhost:5173 || echo "Frontend unreachable"
+                    echo "🔍 Vérification Frontend (port 5173)..."
+                    curl --max-time 5 -f http://localhost:5173 || echo "❌ Frontend unreachable"
 
-                    echo " Vérification Backend (port 5001)..."
-                    curl -f http://localhost:5001/api || echo "Backend unreachable"
+                    echo "🔍 Vérification Backend (port 5001)..."
+                    curl --max-time 5 -f http://localhost:5001/api || echo "❌ Backend unreachable"
                 '''
             }
         }
@@ -122,17 +131,18 @@ pipeline {
     post {
         success {
             emailext(
-                subject: "Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                subject: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: "Pipeline réussi\nDétails : ${env.BUILD_URL}",
                 to: "abdoubasseoconoor@gmail.com"
             )
         }
         failure {
             emailext(
-                subject: "Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                subject: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: "Le pipeline a échoué\nDétails : ${env.BUILD_URL}",
                 to: "abdoubasseoconoor@gmail.com"
             )
         }
     }
 }
+
