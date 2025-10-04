@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        // Assure-toi que "NodeJS_16" est bien configuré dans Jenkins > Global Tool Configuration
+        // Assure-toi que "NodeJS_16" est bien configuré dans Jenkins >  Global Tool Configuration
         nodejs "NodeJS_16"
     }
 
